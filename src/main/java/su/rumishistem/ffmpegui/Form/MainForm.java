@@ -156,7 +156,23 @@ public class MainForm {
 				}
 			}).start();
 		} else {
-			
+			new Thread(new Runnable() {
+				@Override
+				public void run() {
+					HashMap<File, String> list = new HashMap<>();
+
+					for (File file:file_list) {
+						ConvertSettingForm form = new ConvertSettingForm(shell);
+						String args = form.open();
+						if (args == null) return;
+						list.put(file, args);
+					}
+
+					for (File file:list.keySet()) {
+						processing(file, list.get(file));
+					}
+				}
+			}).start();
 		}
 	}
 
