@@ -25,6 +25,10 @@ public class JobWorker {
 		return (int) job_worker.getCompletedTaskCount();
 	}
 
+	public void shutdown() {
+		job_worker.shutdownNow();
+	}
+
 	public void add_event_listener(Runnable listener) {
 		update_event_listener.add(listener);
 	}

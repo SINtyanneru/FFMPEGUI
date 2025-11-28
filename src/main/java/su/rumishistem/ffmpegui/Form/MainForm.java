@@ -41,7 +41,18 @@ public class MainForm {
 		shell.addShellListener(new ShellAdapter() {
 			@Override
 			public void shellClosed(ShellEvent e) {
+				MessageBox mb = new MessageBox(shell, SWT.ICON_QUESTION | SWT.YES | SWT.NO);
+				mb.setText("終了しますか？");
+				mb.setMessage("処理しているものも強制的に終了されます。");
+				int result = mb.open();
+				if (result == SWT.NO) {
+					e.doit = false;
+					return;
+				}
+
+				Main.jw.shutdown();
 				display.dispose();
+				System.exit(0);
 			}
 		});
 
