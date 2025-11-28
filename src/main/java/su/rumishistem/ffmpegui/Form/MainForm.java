@@ -1,7 +1,12 @@
 package su.rumishistem.ffmpegui.Form;
 
 import java.io.*;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
 import java.util.*;
 import java.util.List;
 import java.util.regex.*;
@@ -275,14 +280,30 @@ public class MainForm {
 
 							int code = p.waitFor();
 
+							//tmpファイルを取得
+							File processed_file = get_processed_file(tmp_file);
+							if (processed_file == null) return;
+
 							display.asyncExec(new Runnable() {
 								@Override
 								public void run() {
 									progressbar.setSelection(100);
 
 									if (code == 0) {
-										status_label.setText("完了");
+										try {
+											Path src = processed_file.toPath();
+											Path dst = Paths.get(file.getParent(), file.getName()+"_Re");
+
+											Files.copy(src, dst);
+											Files.delete(src);
+
+											status_label.setText("完了");
+										} catch (IOException ex) {
+											ex.printStackTrace();
+											status_label.setText("成功したが失敗");
+										}
 									} else {
+										try { Files.delete(processed_file.toPath()); } catch (IOException ex) {}
 										status_label.setText("失敗！");
 									}
 								}
@@ -294,5 +315,18 @@ public class MainForm {
 				});
 			}
 		});
+	}
+
+	private File get_processed_file(String tmp_file) throws IOException {
+		DirectoryStream<Path> stream = Files.newDirectoryStream(Path.of("/tmp"), new File(tmp_file).getName() + "*");
+		try {
+			for (Path entry:stream) {
+				return entry.toFile();
+			}
+
+			return null;
+		} finally {
+			stream.close();
+		}
 	}
 }
