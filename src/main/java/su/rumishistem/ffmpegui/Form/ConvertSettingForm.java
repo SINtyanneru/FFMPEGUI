@@ -18,6 +18,7 @@ public class ConvertSettingForm {
 	private Shell dialog;
 	private CountDownLatch cdl = new CountDownLatch(1);
 	private String cmd_args = null;
+	private boolean replace_original_file = false;
 
 	public ConvertSettingForm(Shell owner) {
 		dialog = new Shell(owner, SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL);
@@ -51,6 +52,20 @@ public class ConvertSettingForm {
 		GridData cmd_args_lg = new GridData(GridData.FILL_HORIZONTAL | GridData.FILL_VERTICAL);
 		cmd_args_lg.horizontalSpan = 2;
 		cmd_args_text.setLayoutData(cmd_args_lg);
+
+		//元ファイル上書き
+		Button replace_original_file_checkbox = new Button(dialog, SWT.CHECK);
+		replace_original_file_checkbox.setText("元ファイルを上書きする");
+		replace_original_file_checkbox.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				System.out.println(replace_original_file_checkbox.getSelection());
+				replace_original_file = replace_original_file_checkbox.getSelection();
+			}
+		});
+		GridData replace_original_file_ld = new GridData(GridData.FILL_HORIZONTAL);
+		replace_original_file_ld.horizontalSpan = 2;
+		replace_original_file_checkbox.setLayoutData(replace_original_file_ld);
 
 		//OKボタン
 		Button ok_button = new Button(dialog, SWT.NONE);
@@ -87,5 +102,9 @@ public class ConvertSettingForm {
 		} catch (InterruptedException ex) {
 			return null;
 		}
+	}
+
+	public boolean is_replace_original_file() {
+		return replace_original_file;
 	}
 }

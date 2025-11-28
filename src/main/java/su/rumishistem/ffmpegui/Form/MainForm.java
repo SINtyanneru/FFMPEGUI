@@ -156,7 +156,7 @@ public class MainForm {
 					if (args == null) return;
 
 					for (File file:file_list) {
-						processing(file, args);
+						processing(file, args, form.is_replace_original_file());
 					}
 				}
 			}).start();
@@ -164,24 +164,33 @@ public class MainForm {
 			new Thread(new Runnable() {
 				@Override
 				public void run() {
-					HashMap<File, String> list = new HashMap<>();
+					List<HashMap<String, Object>> list = new ArrayList<>();
 
 					for (File file:file_list) {
 						ConvertSettingForm form = new ConvertSettingForm(shell);
 						String args = form.open();
 						if (args == null) return;
-						list.put(file, args);
+						list.add(new HashMap<>() {
+							{
+								put("FILE", file);
+								put("ARGS", args);
+								put("REPLACE", form.is_replace_original_file());
+							}
+						});
 					}
 
-					for (File file:list.keySet()) {
-						processing(file, list.get(file));
+					for (HashMap<String, Object> row:list) {
+						File file = (File)row.get("FILE");
+						String args = (String)row.get("ARGS");
+						boolean replace_original = (boolean)row.get("REPLACE");
+						processing(file, args, replace_original);
 					}
 				}
 			}).start();
 		}
 	}
 
-	private void processing(File file, String args) {
+	private void processing(File file, String args, boolean replace_original) {
 		String tmp_file = "/tmp/" + UUID.randomUUID().toString();
 
 		VideoProbe probe = FFProbe.show(file.getPath());
@@ -291,11 +300,21 @@ public class MainForm {
 
 									if (code == 0) {
 										try {
-											Path src = processed_file.toPath();
-											Path dst = Paths.get(file.getParent(), file.getName()+"_Re");
 
-											Files.copy(src, dst);
-											Files.delete(src);
+											if (replace_original) {
+												Path original = file.toPath();
+												Path src = processed_file.toPath();
+
+												Files.delete(original);
+												Files.copy(src, original);
+												Files.delete(src);
+											} else {
+												Path src = processed_file.toPath();
+												Path dst = Paths.get(file.getParent(), file.getName()+"_Re");
+
+												Files.copy(src, dst);
+												Files.delete(src);
+											}
 
 											status_label.setText("完了");
 										} catch (IOException ex) {
