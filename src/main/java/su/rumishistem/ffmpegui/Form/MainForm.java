@@ -3,7 +3,6 @@ package su.rumishistem.ffmpegui.Form;
 import java.io.*;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
@@ -13,7 +12,7 @@ import java.util.regex.*;
 import java.util.regex.Pattern;
 
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.custom.TableEditor;
+import org.eclipse.swt.custom.ScrolledComposite;
 import org.eclipse.swt.dnd.*;
 import org.eclipse.swt.events.*;
 import org.eclipse.swt.graphics.*;
@@ -26,7 +25,8 @@ import su.rumishistem.ffmpegui.Type.VideoProbe;
 
 public class MainForm {
 	private Display display;
-	private Table job_table;
+	private ScrolledComposite job_list;
+	private Composite job_list_contents;
 
 	public MainForm(Display display) {
 		this.display = display;
@@ -121,13 +121,17 @@ public class MainForm {
 		});
 
 		//ジョブ一覧
-		job_table = new Table(shell, SWT.BORDER);
-		job_table.setHeaderVisible(false);
-		job_table.setLinesVisible(false);
-		job_table.setLayoutData(new GridData(GridData.FILL_VERTICAL | GridData.FILL_HORIZONTAL));
+		job_list = new ScrolledComposite(shell, SWT.V_SCROLL);
+		job_list.setExpandHorizontal(true);
+		job_list.setExpandVertical(true);
+		job_list.setLayoutData(new GridData(GridData.FILL_VERTICAL | GridData.FILL_HORIZONTAL));
 
-		TableColumn col = new TableColumn(job_table, SWT.NONE);
-		col.setWidth(200);
+		job_list_contents = new Composite(job_list, SWT.NONE);
+		job_list_contents.setLayout(new GridLayout(1, false));
+		job_list_contents.setLayoutData(new GridData(GridData.FILL_BOTH));
+
+		job_list.setContent(job_list_contents);
+		job_list.setMinSize(job_list_contents.computeSize(SWT.DEFAULT, SWT.DEFAULT));
 
 		shell.layout();
 		shell.open();
@@ -211,35 +215,27 @@ public class MainForm {
 		display.asyncExec(new Runnable() {
 			@Override
 			public void run() {
-				TableItem item = new TableItem(job_table, SWT.NONE);
-				Composite composite = new Composite(job_table, SWT.NONE);
+				Composite row = new Composite(job_list_contents, SWT.BORDER);
+				row.setLayout(new GridLayout(2, false));
+				row.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
 
-				GridLayout layout = new GridLayout(2, false);
-				composite.setLayout(layout);
-
-				Label status_label = new Label(composite, SWT.NONE);
+				Label status_label = new Label(row, SWT.NONE);
 				status_label.setText("待機中");
 				GridData status_label_ld = new GridData();
 				status_label_ld.verticalSpan = 2;
 				status_label.setLayoutData(status_label_ld);
 
-				Label name_label = new Label(composite, SWT.NONE);
+				Label name_label = new Label(row, SWT.NONE);
 				name_label.setText(file.getName());
 				name_label.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
 
-				ProgressBar progressbar = new ProgressBar(composite, SWT.SMOOTH);
+				ProgressBar progressbar = new ProgressBar(row, SWT.SMOOTH);
 				progressbar.setMaximum(100);
 				progressbar.setSelection(0);
 				progressbar.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
 
-				TableEditor table_editor = new TableEditor(job_table);
-				table_editor.grabHorizontal = true;
-				table_editor.minimumHeight = composite.computeSize(SWT.DEFAULT, SWT.DEFAULT).y;
-				table_editor.minimumWidth = composite.computeSize(SWT.DEFAULT, SWT.DEFAULT).x;
-				table_editor.setEditor(composite, item, 0);
-
-				job_table.layout(true, true);
-				composite.layout(true);
+				job_list_contents.layout(true, true);
+				job_list.setMinSize(job_list_contents.computeSize(SWT.DEFAULT, SWT.DEFAULT));
 
 				Main.jw.add_job(new Runnable() {
 					@Override
