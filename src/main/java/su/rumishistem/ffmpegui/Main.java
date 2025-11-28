@@ -14,6 +14,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.custom.TableEditor;
 import org.eclipse.swt.dnd.DND;
 import org.eclipse.swt.dnd.DropTarget;
 import org.eclipse.swt.dnd.DropTargetAdapter;
@@ -31,15 +32,19 @@ import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
+import org.eclipse.swt.layout.RowLayout;
+import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.FileDialog;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.MessageBox;
+import org.eclipse.swt.widgets.ProgressBar;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Table;
 import org.eclipse.swt.widgets.TableColumn;
 import org.eclipse.swt.widgets.TableItem;
 
+import okhttp3.internal.cache.DiskLruCache.Editor;
 import su.rumishistem.ffmpegui.Form.ConvertSettingForm;
 import su.rumishistem.ffmpegui.Module.FFProbe;
 import su.rumishistem.ffmpegui.Module.JobWorker;
@@ -55,7 +60,7 @@ public class Main {
 		System.out.println("FFMPEGUI (C)るみ");
 
 		Shell shell = new Shell(display);
-		shell.setSize(500, 300);
+		shell.setSize(600, 300);
 		shell.setText("FFMPEGUI");
 
 		GridLayout l = new GridLayout(2, false);
@@ -80,7 +85,7 @@ public class Main {
 
 		Label drdr_label = new Label(shell, SWT.NONE);
 		drdr_label.setImage(drdr_image);
-		drdr_label.setLayoutData(new GridData(GridData.FILL_VERTICAL | GridData.FILL_HORIZONTAL));
+		drdr_label.setLayoutData(new GridData(GridData.FILL_VERTICAL));
 
 		//ドラドロするためのやつ
 		DropTarget target = new DropTarget(drdr_label, DND.DROP_COPY | DND.DROP_MOVE);
@@ -130,7 +135,7 @@ public class Main {
 		job_table = new Table(shell, SWT.BORDER);
 		job_table.setHeaderVisible(false);
 		job_table.setLinesVisible(false);
-		job_table.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
+		job_table.setLayoutData(new GridData(GridData.FILL_VERTICAL | GridData.FILL_HORIZONTAL));
 
 		TableColumn col = new TableColumn(job_table, SWT.NONE);
 		col.setWidth(200);
@@ -192,7 +197,34 @@ public class Main {
 							@Override
 							public void run() {
 								TableItem item = new TableItem(job_table, SWT.NONE);
-								item.setText("待機中[" + file.getName() + "]");
+								Composite composite = new Composite(job_table, SWT.NONE);
+
+								GridLayout layout = new GridLayout(2, false);
+								composite.setLayout(layout);
+
+								Label status_label = new Label(composite, SWT.NONE);
+								status_label.setText("待機中");
+								GridData status_label_ld = new GridData();
+								status_label_ld.verticalSpan = 2;
+								status_label.setLayoutData(status_label_ld);
+
+								Label name_label = new Label(composite, SWT.NONE);
+								name_label.setText(file.getName());
+								name_label.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
+
+								ProgressBar progressbar = new ProgressBar(composite, SWT.SMOOTH);
+								progressbar.setMaximum(100);
+								progressbar.setSelection(0);
+								progressbar.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
+
+								TableEditor table_editor = new TableEditor(job_table);
+								table_editor.grabHorizontal = true;
+								table_editor.minimumHeight = composite.computeSize(SWT.DEFAULT, SWT.DEFAULT).y;
+								table_editor.minimumWidth = composite.computeSize(SWT.DEFAULT, SWT.DEFAULT).x;
+								table_editor.setEditor(composite, item, 0);
+
+								job_table.layout(true, true);
+								composite.layout(true);
 
 								jw.add_job(new Runnable() {
 									@Override
@@ -201,7 +233,7 @@ public class Main {
 											display.asyncExec(new Runnable() {
 												@Override
 												public void run() {
-													item.setText("処理中[" + file.getName() + "]");
+													status_label.setText("処理中");
 												}
 											});
 
@@ -230,6 +262,12 @@ public class Main {
 
 														//進捗
 														int progress = (int)Math.floor((parsed_time / probe.duration) * 100);
+														display.asyncExec(new Runnable() {
+															@Override
+															public void run() {
+																progressbar.setSelection(progress);
+															}
+														});
 													}
 												}
 											}
@@ -239,10 +277,12 @@ public class Main {
 											display.asyncExec(new Runnable() {
 												@Override
 												public void run() {
+													progressbar.setSelection(100);
+
 													if (code == 0) {
-														item.setText("完了[" + file.getName() + "]");
+														status_label.setText("完了");
 													} else {
-														item.setText("失敗[" + file.getName() + "]");
+														status_label.setText("失敗！");
 													}
 												}
 											});
